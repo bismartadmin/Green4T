@@ -1,0 +1,12 @@
+--Levar o Project ID da linha para o cabeçalho.
+
+DECLARE
+	attr_ VARCHAR(32000);
+	project_id_ VARCHAR(4000) :='&NEW:PROJECT_ID';
+	order_no_ VARCHAR(4000) :='&NEW:ORDER_NO';
+	
+BEGIN
+	client_sys.Add_To_Attr('project_id', project_id_, attr_);
+	client_sys.Add_To_Attr('order_no', order_no_, attr_);
+	transaction_SYS.Deferred_Call('UPDATE_PROJECT_ID', attr_, 'Atualizando a ordem de compra nº: '|| order_no_ ||'. com o project ID: '|| project_id_ ||'.');
+END;
