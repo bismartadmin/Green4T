@@ -1,0 +1,34 @@
+SELECT 
+-- Cabeçalho
+PO.ORDER_NO                                              ID_OC,
+PO.VENDOR_NO                                             ID_FORNECEDOR,
+IFSGFT.Supplier_API.Get_Vendor_name(PO.VENDOR_NO)        DESC_FORNECEDOR,
+PO.CONTRACT                                              ID_SITE,
+PO.STATE                                                 STATUS_OC,
+PO.WANTED_RECEIPT_DATE                                   DATA_RECEB,
+PO.BUYER_CODE                                            ID_COMPRADOR,
+IFSGFT.ORDER_COORDINATOR_API.Get_Name(PO.AUTHORIZE_CODE) DESC_COORDENADOR,
+PO.DELIVERY_ADDRESS                                      END_ENTREGA,
+PO.PAY_TERM_ID                                           ID_COND_PAGTO,
+       --Linha
+       POLP.LINE_NO                                                                                                 N_LINHA,
+       ifsgft.PURCHASE_REQUISITION_API.Get_Requisitioner_Code(POLP.REQUISITION_NO)                                  REQUISITANTE,
+       POLP.RELEASE_NO                                                                                              N_LIBERACAO,
+       POLP.PART_NO                                                                                                 ID_MATERIAL,
+       POLP.DESCRIPTION                                                                                             DESC_MATERIAL,
+       POLP.BUY_QTY_DUE                                                                                             QUANTIDADE,
+       POLP.PLANNED_RECEIPT_DATE                                                                                    DATA_RECB_PLANEJADA,
+       IFSGFT.Purchase_Part_Api.Get_Stat_Grp(purchase_site, part_no)                                                GRUPO_COMPRA,
+       IFSGFT.Purchase_Part_Group_API.Get_Description(IFSGFT.Purchase_Part_API.Get_Stat_Grp(PURCHASE_SITE,PART_NO)) DESC_GRUPO_COMPRA,
+       IFSGFT.ACTIVITY_API.Get_Sub_Project_Id(ACTIVITY_SEQ)                                                         ID_SUBPROJETO,
+       IFSGFT.ACTIVITY_API.Get_Sub_Project_Description(ACTIVITY_SEQ)                                                DESC_SUBPROJETO,
+       POLP.CODE_G                                                                                                  FILIAL,
+       POLP.FBUY_UNIT_PRICE                                                                                         PRECO_MOEDA,
+       POLP.PROJECT_ID                                                                                              ID_PROJETO
+
+FROM IFSGFT.PURCHASE_ORDER_CFV PO
+join IFSGFT.PURCHASE_ORDER_LINE_PART POLP on PO.ORDER_NO = POLP.ORDER_NO 
+WHERE ( select PB.CF$_PAGADOR_COMISSAO from ifsgft.PURCHASE_BUYER_CFV PB WHERE PB.BUYER_CODE = po.BUYER_CODE) = 'SIM'
+AND        PO.VENDOR_NO LIKE NVL(UPPER('&ID_FORNECEDOR'),'%')
+AND        IFSGFT.Supplier_API.Get_Vendor_name(PO.VENDOR_NO)  LIKE NVL(UPPER('&DESC_FORNECEDOR'),'%')
+AND        PO.CONTRACT  LIKE NVL(UPPER('&ID_SITE'),'%')
