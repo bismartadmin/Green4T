@@ -1,0 +1,201 @@
+DECLARE
+    contrato_      VARCHAR2(3200) := NULL;
+    nome_contrato_ VARCHAR2(3200) := NULL;
+    descricao_     VARCHAR2(3200) := NULL;
+    id_cliente_    VARCHAR2(3200) := NULL;
+    nome_cliente_  VARCHAR2(3200) := NULL;
+    gerente_       VARCHAR2(3200) := NULL;
+    oportunid_     VARCHAR2(3200) := NULL;
+    data_inicio_   DATE           := NULL;
+    data_final_    DATE           := NULL;
+    email_         VARCHAR2(3200) := NULL;
+    
+    cabec_         CLOB           := NULL;
+    table_         CLOB           := NULL;
+    text_          CLOB           := NULL;
+    
+    total_anos_contrato_ NUMBER   := NULL;
+    anos_passados_       NUMBER   := NULL;
+    data_aniversario_    DATE     := NULL;
+
+CURSOR CLIENTE IS
+    SELECT A.CONTRACT_NO                                     CONTRATO,
+           A.CONTRACT_NAME                                   NOME_CONTRATO,
+           CONTRACT_TYPE_API.Get_Type_Description(A.TYPE_ID) DESCRICAO,
+           A.CUSTOMER_ID                                     ID_CLIENTE,        
+           CUSTOMER_INFO_API.Get_Name(A.CUSTOMER_ID)         CLIENTE,
+           PERSON_INFO_API.Get_Name(A.CONTRACT_MANAGER)      GERENTE,
+           A.CF$_SALESFORCE_CONTRACT                         OPORT_SALES, 
+           A.PLANNED_START_DATE                              DATA_INICIO,
+           A.PLANNED_FINISH_DATE                             DATA_FINAL,
+           'adm.vendas@green4t.com;marcio.martin@green4t.com;' ||
+           NVL((SELECT C.VALUE FROM FND_USER_PROPERTY C
+                 WHERE C.NAME = 'SMTP_MAIL_ADDRESS'
+                   AND C.identity = A.CONTRACT_MANAGER AND ROWNUM=1),
+               (SELECT B.VALUE FROM PERSON_INFO_COMM_METHOD2 B
+                 WHERE B.identity = A.CONTRACT_MANAGER
+                   AND B.METHOD_ID_DB = 'E_MAIL'
+                   AND B.METHOD_DEFAULT = 'TRUE'
+                   AND ROWNUM=1)) EMAIL
+    FROM SALES_CONTRACT_CFV A;
+
+BEGIN
+    OPEN CLIENTE;
+    LOOP 
+        FETCH CLIENTE INTO contrato_, nome_contrato_, descricao_, id_cliente_, nome_cliente_, gerente_, oportunid_, data_inicio_, data_final_, email_;                                    
+        EXIT WHEN CLIENTE%NOTFOUND;
+        
+        IF contrato_ IS NOT NULL THEN
+            -- calcula o total de anos de contrato
+            total_anos_contrato_ := EXTRACT(YEAR FROM data_final_) - EXTRACT(YEAR FROM data_inicio_);
+
+            -- verifica se há mais de um ano de contrato , para nao pegar contratos que já encerraram 
+            IF total_anos_contrato_ > 1 THEN
+              
+                -- loop para verificar cada aniversário anual do contrato - data que ele completou 1 ano 
+                FOR y IN 1 .. total_anos_contrato_ - 1 LOOP
+                  
+                    -- calcula a data do próximo aniversário de contrato
+                    data_aniversario_ := ADD_MONTHS(data_inicio_, y * 12);
+                    
+                    -- verifica se faltam exatamente 60 dias para o próximo aniversário do contrato
+                    IF TRUNC(data_aniversario_) = TRUNC(SYSDATE + 60) THEN
+                        cabec_ := '
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organização de Conteúdo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            
+            padding: 8px;
+            text-align: left;
+            color: #333;
+        }
+        th {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h4 {
+            margin-top: 0;
+            color: #333;
+            font-size: 16px;
+           
+        }
+        h6 {
+            margin-top: 0;
+            color: #ffffff;
+            font-size: 26px;
+            margin-bottom: 0;
+            font-family: DejaVu Sans Mono, monospace;
+        }   
+
+
+    </style>
+</head>
+<body>
+  <table style="background-color: #ffffff;">
+    <tr>
+      <td style="padding: 15px;text-align:center;">
+       <img alt="teste_img">
+      </td> 
+    <tr>
+    <tr>
+      <td style="padding: 10px;">
+        <h4 style="font-weight: normal;">Olá.</h4>
+        <h4 style="font-weight: normal;">O contrato ' || contrato_ || ' completará ' || y || ' ano(s) em 60 dias.</h4>
+      </td> 
+        </tr>        
+        <tr>
+                    <td style="padding: 10px;">
+                        <h4>Detalhes do Contrato</h4>
+                        <table>
+                            <tr> 
+                                <th style="border:1px solid #ddd;">Contrato</th>
+                                <th style="border:1px solid #ddd;">Nome</th>
+                                <th style="border:1px solid #ddd;">Tipo Contrato</th>
+                                <th style="border:1px solid #ddd;">Gerente Contrato</th>
+                            </tr>
+                            <tr>
+                                <td style="border:1px solid #ddd;">'||contrato_||'</td>
+                                <td style="border:1px solid #ddd;">'||nome_contrato_||'</td>
+                                <td style="border:1px solid #ddd;">'||descricao_||'</td>
+                                <td style="border:1px solid #ddd;">'||gerente_||'</td>
+                            </tr>
+                        </table> 
+                        <br>
+                        <table>   
+                            <tr>
+                                <th style="border:1px solid #ddd;">Cod. Cliente</th>
+                                <th style="border:1px solid #ddd;">Cliente</th>                              
+                                <th style="border:1px solid #ddd;">ID Oportunidade Sales Force</th>
+                            </tr>
+                            <tr>
+                                <td style="border:1px solid #ddd;">'||id_cliente_||'</td>
+                                <td style="border:1px solid #ddd;">'||nome_cliente_||'</td>                               
+                                <td style="border:1px solid #ddd;">'||oportunid_||'</td>
+                            </tr>
+                        </table>
+                   </td>
+                </tr>
+                <tr>
+                    <td style="padding:10px;">
+                        <h4>Projetos associados ao contrato</h4>
+                        <table>
+                            <tr>
+                                <th style="border:1px solid #ddd;">Projeto</th>
+                                <th style="border:1px solid #ddd;">Nome</th>
+                                <th style="border:1px solid #ddd;">Data Inicio</th>
+                                <th style="border:1px solid #ddd;">Data Fim</th>
+                            </tr>';    
+              
+                  FOR r IN (SELECT DISTINCT A.PROJECT_ID ID_PROJETO,
+                                   PROJECT_API.Get_Name(A.PROJECT_ID) NOME_PROJETO,
+                                   To_char(PROJECT_API.Get_Plan_Start(A.project_id),'dd/mm/yyyy') DATA_INICIO,
+                                   To_char(PROJECT_API.Get_Plan_Finish(A.project_id),'dd/mm/yyyy') DATA_FIM
+                                FROM CONTRACT_PROJECT A
+                                   WHERE a.contract_no = contrato_ order by A.PROJECT_ID)
+                  LOOP
+                      
+                      table_ := table_||'<tr><td style="border:1px solid #ddd;">'||r.id_projeto||'</td><td style="border:1px solid #ddd;">'||r.nome_projeto||'</td><td style="border:1px solid #ddd;">'||r.data_inicio||'</td><td style="border: 1px solid #ddd;">'||r.data_fim||'</td>
+                                </tr>';
+                --      text_ := text_ || 'Projeto: ' || r.id_projeto || ', Nome: ' || r.nome_projeto || ', Data inicio Projeto: ' || r.data_inicio || ', Data fim Projeto: ' || r.data_fim || CHR(10) || CHR(13);
+                  END LOOP;
+             text_ := cabec_||table_||'</table></td></tr> <tr>
+                                          <td style="text-align:center;">
+                                          </td>
+                                       </tr>
+                                       <tr>
+                                          <td style="padding: 0 10px;"> <!-- Coluna vazia à esquerda -->
+                                              <table width="100%">
+                                                     <tr>
+                                                     </tr></table></td></tr></table></body></html>';
+                        
+                        -- Enviar o email de alerta
+                        command_sys.Mail(
+                            from_user_name_ => 'ifs@green4t.com',
+                            to_user_name_   => 'thayna.oliveira@green4t.com',
+                            text_           => text_,
+                            subject_        => 'Alerta de Reajuste Contrato ' || contrato_
+                        );
+               COMMIT;
+              END IF;
+             END LOOP;
+            END IF;
+           END IF;
+          END LOOP;
+         CLOSE CLIENTE;
+        END;
