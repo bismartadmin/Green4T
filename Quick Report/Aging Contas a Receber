@@ -1,56 +1,65 @@
-SELECT subtab.ID_CLIENTE,
-       subtab.DESC_CLIENTE,
-       subtab.ID_EMPRESA,
-       TO_CHAR(SUM(subtab.A_1_30DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS A_1_30DD,
-       TO_CHAR(SUM(subtab.B_31_60DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS B_31_60DD,
-       TO_CHAR(SUM(subtab.C_61_90DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS C_61_90DD,
-       TO_CHAR(SUM(subtab.D_91_180DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS D_91_180DD,
-       TO_CHAR(SUM(subtab.E_181_365DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS E_181_365DD,
-       TO_CHAR(SUM(subtab.F_365DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS F_365DD,
+SELECT subtab.ID_CLIENTE as "ID Cliente",
+       subtab.DESC_CLIENTE as "Nome Cliente",
+       subtab.ID_EMPRESA as "Empresa",
+       TO_CHAR(SUM(subtab.A_1_30DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''')  AS " < 30dd ",
+       TO_CHAR(SUM(subtab.B_31_60DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS " 31 - 60dd",
+       TO_CHAR(SUM(subtab.C_61_90DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS " 61 - 91dd",
+       TO_CHAR(SUM(subtab.D_91_180DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS " 91 - 180dd",
+       TO_CHAR(SUM(subtab.E_181_365DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS " 181 - 365dd",
+       TO_CHAR(SUM(subtab.F_365DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS " > 365dd",
        TO_CHAR(SUM(subtab.A_1_30DD + subtab.B_31_60DD + subtab.C_61_90DD + subtab.D_91_180DD + subtab.E_181_365DD + subtab.F_365DD), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.''') AS TOTAL
+
   FROM (SELECT a.customer_no   ID_CLIENTE,
                a.customer_name DESC_CLIENTE,
                a.company_id    ID_EMPRESA,
+               
                CASE
                   WHEN (TO_DATE(SYSDATE) - a.current_due_date) BETWEEN 0 AND 30 THEN
                    a.rest_dom_amount
                   ELSE
                    0
                END AS a_1_30dd,
+               
                CASE
                   WHEN (TO_DATE(SYSDATE) - a.current_due_date) BETWEEN 31 AND 60 THEN
                    a.rest_dom_amount
                   ELSE
                    0
                END AS b_31_60dd,
+               
                CASE
                   WHEN (TO_DATE(SYSDATE) - a.current_due_date) BETWEEN 61 AND 90 THEN
                    a.rest_dom_amount
                   ELSE
                    0
                END AS c_61_90dd,
+               
                CASE
                   WHEN (TO_DATE(SYSDATE) - a.current_due_date) BETWEEN 91 AND 180 THEN
                    a.rest_dom_amount
                   ELSE
                    0
                END AS d_91_180dd,
+               
                CASE
                   WHEN (TO_DATE(SYSDATE) - a.current_due_date) BETWEEN 181 AND 365 THEN
                    a.rest_dom_amount
                   ELSE
                    0
                END AS e_181_365dd,
+               
                CASE
                   WHEN (TO_DATE(SYSDATE) - a.current_due_date) > 365 THEN
                    a.rest_dom_amount
                   ELSE
                    0
                END AS f_365dd
+        
           FROM CUST_OPEN_ITEM_SNAPSHOT a) subtab
 
- WHERE (NVL(subtab.ID_EMPRESA,'') LIKE '%' || '&EMPRESA' || '%')
-
+   WHERE (NVL(subtab.ID_EMPRESA,'') LIKE '%' || '&EMPRESA' || '%')
+     AND  (NVL(subtab.DESC_CLIENTE,'') LIKE '%' || '&DESC_CLIENTE' || '%')
+       AND (NVL(subtab.ID_CLIENTE,'') LIKE '%' || '&ID_CLIENTE' || '%')
  GROUP BY subtab.ID_CLIENTE,
           subtab.DESC_CLIENTE,
-          subtab.ID_EMPRESA
+          subtab.ID_EMPRESA;
