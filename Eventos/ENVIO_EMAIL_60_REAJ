@@ -9,6 +9,7 @@ DECLARE
     data_inicio_   DATE           := NULL;
     data_final_    DATE           := NULL;
     email_         VARCHAR2(3200) := NULL;
+    indice_reajst_ VARCHAR2(3200) := NULL;
     
     cabec_         CLOB           := NULL;
     table_         CLOB           := NULL;
@@ -36,13 +37,15 @@ CURSOR CLIENTE IS
                  WHERE B.identity = A.CONTRACT_MANAGER
                    AND B.METHOD_ID_DB = 'E_MAIL'
                    AND B.METHOD_DEFAULT = 'TRUE'
-                   AND ROWNUM=1)) EMAIL
+                   AND ROWNUM=1)) EMAIL,
+          A.CF$_READJUSTMENT_INDEX  
+          
     FROM SALES_CONTRACT_CFV A;
 
 BEGIN
     OPEN CLIENTE;
     LOOP 
-        FETCH CLIENTE INTO contrato_, nome_contrato_, descricao_, id_cliente_, nome_cliente_, gerente_, oportunid_, data_inicio_, data_final_, email_;                                    
+        FETCH CLIENTE INTO contrato_, nome_contrato_, descricao_, id_cliente_, nome_cliente_, gerente_, oportunid_, data_inicio_, data_final_, email_ , indice_reajst_;                                    
         EXIT WHEN CLIENTE%NOTFOUND;
         
         IF contrato_ IS NOT NULL THEN
@@ -116,7 +119,7 @@ BEGIN
     <tr>
       <td style="padding: 10px;">
         <h4 style="font-weight: normal;">Olá.</h4>
-        <h4 style="font-weight: normal;">O contrato ' || contrato_ || ' completará ' || y || ' ano(s) em 60 dias.</h4>
+        <h4 style="font-weight: normal;">Dentro de 60 dias, será necessário aplicar o reajuste referente ao contrato  ' || contrato_ || ' .</h4>
       </td> 
         </tr>        
         <tr>
@@ -128,12 +131,14 @@ BEGIN
                                 <th style="border:1px solid #ddd;">Nome</th>
                                 <th style="border:1px solid #ddd;">Tipo Contrato</th>
                                 <th style="border:1px solid #ddd;">Gerente Contrato</th>
+                                <th style="border:1px solid #ddd;">Indice Reajuste</th>
                             </tr>
                             <tr>
                                 <td style="border:1px solid #ddd;">'||contrato_||'</td>
                                 <td style="border:1px solid #ddd;">'||nome_contrato_||'</td>
                                 <td style="border:1px solid #ddd;">'||descricao_||'</td>
                                 <td style="border:1px solid #ddd;">'||gerente_||'</td>
+                                <td style="border:1px solid #ddd;">'||indice_reajst_||'</td>
                             </tr>
                         </table> 
                         <br>
@@ -187,7 +192,7 @@ BEGIN
                         -- Enviar o email de alerta
                         command_sys.Mail(
                             from_user_name_ => 'ifs@green4t.com',
-                            to_user_name_   => 'thayna.oliveira@green4t.com',
+                            to_user_name_   => 'guilherme.santana@bismart.com.br',
                             text_           => text_,
                             subject_        => 'Alerta de Reajuste Contrato ' || contrato_
                         );
