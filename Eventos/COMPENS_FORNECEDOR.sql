@@ -22,7 +22,7 @@ ORDER_REFERENCE, FULL_AMOUNT VALOR, REST_AMOUNT VALOR_ABERTO
 from IFSGFT.LEDGER_ITEM16 
 where IS_AUTHORIZED = 'TRUE' 
 and (PARTY_TYPE_DB='COMPANY' OR PARTY_TYPE_DB='SUPPLIER' )  
-and PARKED_PAY_TYPE = 'Supplier' 
+and PARKED_PAY_TYPE_DB = 'SUPPLIER' 
 and LEDGER_ITEM_SERIES_ID = 'SI'
 --and LEDGER_ITEM_ID like 'ADD%'
 and REST_AMOUNT > 0
@@ -37,28 +37,24 @@ r_Adiantamento c_Adiantamento%ROWTYPE;
 
 
 BEGIN
-   /* OPEN c_Adiantamento;
-     LOOP
-        FETCH c_Adiantamento INTO r_Adiantamento;
-        EXIT WHEN c_Adiantamento%notfound;
-     END LOOP;
-    CLOSE c_Adiantamento;  */
-    --RAISE_APPLICATION_ERROR(-20100,'Antes do for: '||currency_||', '||identity_||', '||company_);
-  FOR R IN c_Adiantamento
-   LOOP  
-     RAISE_APPLICATION_ERROR(-20100,'Antes do IF: '||R.IDENTITY||' '||currency_||', '||identity_||', '||company_);   
-    IF R.IDENTITY IS NOT NULL THEN 
-      RAISE_APPLICATION_ERROR(-20100,'Depois do IF: '||R.IDENTITY||', '||currency_||', '||identity_||', '||company_);
+    OPEN c_Adiantamento;
+    FETCH c_Adiantamento INTO r_Adiantamento;
+    IF c_Adiantamento%NOTFOUND THEN
+      transaction_sys.set_status_info('Não existe Adiantamento para o Fornecedor: ' || identity_ || '.','INFO');
+      CLOSE c_Adiantamento;
+    END IF;
+    
+      transaction_sys.set_status_info('Criando a Compensação .','INFO');
        prel_payment_id_ := IFSGFT.PREL_PAYMENT_API.Get_Prel_Payment_Id;
-       p3_ := 'COMPANY'||chr(31)||R.COMPANY||chr(30)||
+       p3_ := 'COMPANY'||chr(31)||r_Adiantamento.COMPANY||chr(30)||
               'PAY_DATE'||chr(31)||TO_CHAR(SYSDATE, 'YYYY-MM-DD-HH.MM.SS')||chr(30)||
               'CURR_RATE'||chr(31)||'1'||chr(30)||
               'VOUCHER_DATE'||chr(31)||TO_CHAR(SYSDATE, 'YYYY-MM-DD-HH.MM.SS')||chr(30)||
               'USERID'||chr(31)||'IFSGFT'||chr(30)||
               'USER_GROUP'||chr(31)||'AC'||chr(30)||
               'VOUCHER_TYPE'||chr(31)||'U'||chr(30)||
-              'PAYMENT_TYPE_CODE'||chr(31)||'Supplier Offset'||chr(30)||
-              'CURRENCY'||chr(31)||R.CURRENCY||chr(30)||
+              'PAYMENT_TYPE_CODE'||chr(31)||'Comp Fornecedor'||chr(30)||
+              'CURRENCY'||chr(31)||r_Adiantamento.CURRENCY||chr(30)||
               'CURR_RATE_TYPE'||chr(31)||'1'||chr(30)||
               'CURR_RATE'||chr(31)||'1'||chr(30)||
               'TAX_CURR_RATE'||chr(31)||'1'||chr(30)||
@@ -72,10 +68,10 @@ BEGIN
        p2_ := NULL;
        p3_ := NULL;
        
-       p3_ := 'COMPANY'||chr(31)||R.COMPANY||chr(30)||
+       p3_ := 'COMPANY'||chr(31)||r_Adiantamento.COMPANY||chr(30)||
               'SERIES_ID'||chr(31)||''||chr(30)||
               'PAYMENT_ID'||chr(31)||''||chr(30)||
-              'CURRENCY'||chr(31)||R.CURRENCY||chr(30)||
+              'CURRENCY'||chr(31)||r_Adiantamento.CURRENCY||chr(30)||
               'DIV_FACTOR'||chr(31)||'1'||chr(30)||
               'CURR_RATE'||chr(31)||'1'||chr(30)||
               'TAX_CURR_RATE'||chr(31)||'1'||chr(30)||
@@ -83,13 +79,8 @@ BEGIN
               'PAYMENT_DATE'||chr(31)||TO_CHAR(SYSDATE, 'YYYY-MM-DD-HH.MM.SS')||chr(30); 
               
        IFSGFT.PREL_PAYMENT_PER_CURRENCY_API.NEW__( p0_ , p1_ , p2_ , p3_ , 'DO' );  
-       --Dbms_Output.Put_Line('Id pagamento: '||prel_payment_id_||', p0: '||p0_||', p1: '||p1_||', p2: '||p2_||', p3: '||p3_);     
+      transaction_sys.set_status_info('Compensação Criada: '||prel_payment_id_||'.','INFO');     
     COMMIT;
-    ELSE
-       DBMS_OUTPUT.PUT_LINE('Não existe Adiantamento para o Fornecedor: '||R.IDENTITY||'.');
-       RAISE_APPLICATION_ERROR(-20100,'Depois do Else: '||R.IDENTITY||', '||currency_||', '||identity_||', '||company_);
-     --  EXIT;
-    END IF; 
-   END LOOP;  
+CLOSE c_Adiantamento;
           
 END;
