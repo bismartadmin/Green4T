@@ -5,9 +5,14 @@ p0_ VARCHAR2(32000) := NULL;
 p1_ VARCHAR2(32000) := NULL;
 p2_ VARCHAR2(32000) := NULL;
 p3_ VARCHAR2(32000) := NULL;
+p4_ VARCHAR2(32000) := NULL;
+p5_ VARCHAR2(32000) := NULL;
+p6_ FLOAT           := NULL;
 currency_ varchar2(3200):= client_sys.Get_Item_Value('currency',attr_); 
 identity_  varchar2(3200):= client_sys.Get_Item_Value('identity',attr_);
 company_ varchar2(3200):= client_sys.Get_Item_Value('company',attr_);
+series_id_ varchar2(3200):= client_sys.Get_Item_Value('series_id',attr_);
+series_no_ varchar2(3200):= client_sys.Get_Item_Value('series_no',attr_);
 
 
 CURSOR c_Adiantamento IS 
@@ -81,6 +86,48 @@ BEGIN
        IFSGFT.PREL_PAYMENT_PER_CURRENCY_API.NEW__( p0_ , p1_ , p2_ , p3_ , 'DO' );  
       transaction_sys.set_status_info('Compensação Criada: '||prel_payment_id_||'.','INFO');     
     COMMIT;
+  
+         BEGIN 
+             transaction_sys.set_status_info('Inserindo o título de reembolso .','INFO');                                           
+             p0_ := '';
+             p1_ := r_Adiantamento.COMPANY;
+             p2_ := r_Adiantamento.IDENTITY;
+             p3_ := 'Fornecedor';
+             p4_ := series_id_;
+             p5_ := series_no_;
+             p6_ := 1;
+    
+                 p0_ := IFSGFT.Ledger_Item_API.Is_Cash_Pia_For_Adv_Inv(p1_ , p2_ , p3_ , p4_ , p5_ , p6_ ); 
+             
+             --p0_ FLOAT := 67666;
+             p1_ := r_Adiantamento.COMPANY;
+             p2_ := '!$1='||r_Adiantamento.IDENTITY||'
+                      $2=Fornecedor
+                      $3=SI
+                      $4='||series_no_||'
+                      $5=1
+                      $6=1
+                      $8='||r_Adiantamento.VALOR_ABERTO||'
+                      $Z=END';
+
+             p3_ := 'OFFSET';
+             p4_ := '!$CURRENCY='||r_Adiantamento.CURRENCY||'
+                      $DOM_CURR='||r_Adiantamento.CURRENCY||'
+                      $INVERTED_RATE=FALSE
+                      $DEC_IN_CURR_AMT=2
+                      $DISC_PARTIAL_PAY=FALSE
+                      $DIV_FACTOR=1
+                      $PARKED_PAY_TYPE=Fornecedor
+                      $PAYMENT_DATE='||TO_CHAR(SYSDATE, 'YYYY-MM-DD-HH.MM.SS')||'
+                      $POST_PREL_TAX_WITHH=
+                      $CURR_RATE=1
+                      $USE_TAX_INV=FALSE
+                      $TAX_CURR_RATE=1';
+             
+             IFSGFT.PREL_PAYMENT_TRANS_UTIL_API.Store_Prel_Pay_Trans(prel_payment_id_,p1_,p2_,p3_,p4_);
+             transaction_sys.set_status_info('Titulo de Reembolso inserido: '||series_id_||', '|| series_no_||' valor: '||r_Adiantamento.VALOR_ABERTO||'.','INFO');
+           COMMIT;  
+         END;
 CLOSE c_Adiantamento;
           
 END;
