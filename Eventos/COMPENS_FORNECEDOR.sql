@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE COMPENS_FORNECEDOR (attr_ IN VARCHAR2) IS
+create or replace PROCEDURE COMPENS_FORNECEDOR (attr_ IN VARCHAR2) IS
 
 prel_payment_id_ FLOAT := NULL;
 p0_ VARCHAR2(32000) := NULL;
@@ -28,9 +28,9 @@ from IFSGFT.LEDGER_ITEM16
 where IS_AUTHORIZED = 'TRUE'
 and (PARTY_TYPE_DB='COMPANY' OR PARTY_TYPE_DB='SUPPLIER' )
 and PARKED_PAY_TYPE_DB = 'SUPPLIER'
-and LEDGER_ITEM_SERIES_ID = 'SI'
+and LEDGER_ITEM_SERIES_ID = 'SUPIA'
 --and LEDGER_ITEM_ID like 'ADD%'
-and REST_AMOUNT > 0
+and REST_AMOUNT < 0
 and decode(IFSGFT.Payment_Proposal_API.Is_Invoice_Used_In_Proposals2(COMPANY, IDENTITY, PARTY_TYPE, LEDGER_ITEM_SERIES_ID, LEDGER_ITEM_ID, LEDGER_ITEM_VERSION,INSTALLMENT_ID)
      ,'TRUE','TRUE',IFSGFT.Payment_Order_API.Is_Invoice_Used_In_Orders2(COMPANY, IDENTITY, PARTY_TYPE, LEDGER_ITEM_SERIES_ID, LEDGER_ITEM_ID, LEDGER_ITEM_VERSION,INSTALLMENT_ID)) = 'FALSE'
 and CURRENCY = currency_
@@ -86,8 +86,8 @@ BEGIN
        IFSGFT.PREL_PAYMENT_PER_CURRENCY_API.NEW__( p0_ , p1_ , p2_ , p3_ , 'DO' );
       transaction_sys.set_status_info('Compensação Criada: '||prel_payment_id_||'.','INFO');
     COMMIT;
------------------------------------------------------------------------------------------------------------------ 
-   --Inclusão dos titulos na compensação    
+-----------------------------------------------------------------------------------------------------------------
+   --Inclusão dos titulos na compensação
 
         BEGIN
           transaction_sys.set_status_info('Inserindo titulo de Adiantamento ID: '||r_Adiantamento.LEDGER_ITEM_SERIES_ID||' N Titulo: '||r_Adiantamento.LEDGER_ITEM_ID||' Id Pagamento: '||prel_payment_id_||'.','INFO');
@@ -125,7 +125,7 @@ $TAX_CURR_RATE=1
 
 
     IFSGFT.Log_SYS.Init_Debug_Session_('bp');
-    
+
 IFSGFT.PREL_PAYMENT_TRANS_UTIL_API.Store_Prel_Pay_Trans(prel_payment_id_,p1_,p2_,p3_,p4_);
 COMMIT;
 transaction_sys.set_status_info('Titulo de Adiantamento inserido, ID: '||r_Adiantamento.LEDGER_ITEM_SERIES_ID||' N Titulo: '||r_Adiantamento.LEDGER_ITEM_ID||' Id Pagamento: '||prel_payment_id_||'.','INFO');
