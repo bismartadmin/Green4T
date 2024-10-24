@@ -9,8 +9,17 @@ p4_ VARCHAR2(32000) := NULL;
 p5_ VARCHAR2(32000) := NULL;
 p6_ FLOAT           := NULL;
 p8_ VARCHAR2(32000) := NULL;
+p9_ FLOAT           := NULL;
+p10_ FLOAT          := NULL;
 val_adiantamento_ NUMBER := NULL;
 val_reembolso_    NUMBER := NULL;
+serie_id_aprov_ VARCHAR2(32000) := NULL;
+payment_id_ FLOAT := NULL;
+voucher_type_ VARCHAR2(32000) := NULL;
+acc_year_ FLOAT := NULL;
+voucher_no_ FLOAT := NULL;
+curr_amount_ FLOAT := NULL;
+
 
 tax_p0_ VARCHAR2(32000) := NULL;
 tax_p1_ FLOAT := NULL;
@@ -298,6 +307,54 @@ $TAX_CURR_RATE=1
         -- Fim do bloco Ajustes do valor da compensação.
         
         -- Bloco aprovar Compensação.
+    BEGIN
+        FOR r IN (SELECT VOUCHER_TYPE,USER_GROUP,ACCOUNTING_YEAR,VOUCHER_GROUP FROM PAYMENT_UNION WHERE PREL_PAYMENT_ID = prel_payment_id_)
+        LOOP
+            transaction_sys.set_status_info('Iniciando Aprovação da compensacao: '||prel_payment_id_||'.','INFO');
+        BEGIN
+            p0_ := NULL;
+            p1_ := company_;
+        
+            IFSGFT.PREL_PAYMENT_TRANS_API.Create_Payment_Message(p0_ , p1_ , prel_payment_id_ );    
+        END;
+        BEGIN
+                p0_ := R.VOUCHER_TYPE;
+                p1_ := company_;
+                p2_ := r.USER_GROUP;
+                p6_ := r.ACCOUNTING_YEAR;
+                p4_ := r.VOUCHER_GROUP;
+                p5_ := 'NOT APPLICABLE';
+
+                IFSGFT.Payment_Library_API.Validate_Voucher_Type_Pay( p0_ , p1_ , p2_ , p6_ , p4_ , p5_ );
+        END;
+        BEGIN
+            serie_id_aprov_ := NULL;
+            payment_id_     := NULL;
+            p2_             := NULL;
+            p6_             := NULL;
+            p4_             := company_;
+            p3_             := '';
+
+            IFSGFT.PREL_PAYMENT_TRANS_UTIL_API.Copy_Payment_Transactions( serie_id_aprov_ , payment_id_ , p2_ , p6_ , p4_ , prel_payment_id_ ,'OFFSET', p3_ );
+
+            
+            voucher_type_ := NULL;
+            acc_year_     := NULL;
+            voucher_no_   := NULL;
+            p5_           := company_;
+            p6_           := 0.00;
+            curr_amount_  := NULL;
+            p8_           := currency_;
+            p9_           := 1;
+            p10_          := 1;
+
+            IFSGFT.Payment_API.Commit_Manual_Payment(voucher_type_ , acc_year_ , voucher_no_ , serie_id_aprov_ , payment_id_ , p5_ , p6_ , curr_amount_ , p8_ , p9_ , p10_ ,NULL);
+    
+            IFSGFT.Prel_Payment_Trans_Util_API.Delete_Prel_Pay_Trans( p5_ , prel_payment_id_ , 'OFFSET');
+        END;
+      END LOOP; 
+      transaction_sys.set_status_info('Compensação Aprovada: '||prel_payment_id_||' id_pagamento: '||payment_id_||' voucher_no: '||voucher_no_||'.','INFO');
+    END;    
 
 CLOSE c_Adiantamento;
 
