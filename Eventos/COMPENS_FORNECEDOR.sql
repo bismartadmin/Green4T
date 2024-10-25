@@ -1,4 +1,4 @@
-create or replace PROCEDURE COMPENS_FORNECEDOR (attr_ IN VARCHAR2) IS
+CREATE OR REPLACE PROCEDURE COMPENS_FORNECEDOR (attr_ IN VARCHAR2) IS
 
 prel_payment_id_ FLOAT := NULL;
 p0_ VARCHAR2(32000) := NULL;
@@ -36,7 +36,7 @@ tax_p11_ FLOAT := NULL;
 tax_p12_ FLOAT := NULL;
 
 
-                        
+
 
 currency_ varchar2(3200):= client_sys.Get_Item_Value('currency',attr_);
 identity_  varchar2(3200):= client_sys.Get_Item_Value('identity',attr_);
@@ -233,7 +233,7 @@ $TAX_CURR_RATE=1
 
         -- Bloco Ajustes do valor da compensação
     BEGIN
-        transaction_sys.set_status_info('Ajustes do saldo: '||series_id_||' N Titulo: '||invoice_no_||' Id Pagamento: '||prel_payment_id_||'.','INFO');
+     --   transaction_sys.set_status_info('Ajustes do saldo: '||series_id_||' N Titulo: '||invoice_no_||' Id Pagamento: '||prel_payment_id_||'.','INFO');
         --Trazer o valor do adiantamento 
         select abs(PAYMENT_AMOUNT) into val_adiantamento_ from PREL_PAYMENT_TRANS 
             where PREL_PAYMENT_ID = prel_payment_id_
@@ -245,7 +245,7 @@ $TAX_CURR_RATE=1
             and LEDGER_ITEM_SERIES_ID = series_id_;
 
         IF val_reembolso_ >  val_adiantamento_ THEN
-            transaction_sys.set_status_info('Iniciando ajustes do saldo, adiantamento: '||val_adiantamento_||' Reembolso: '||val_reembolso_||'.','INFO');
+            transaction_sys.set_status_info('Iniciando ajustes do saldo do reembolso, adiantamento: '||val_adiantamento_||' Reembolso: '||val_reembolso_||'.','INFO');
             BEGIN
                 FOR r in (select OBJID, OBJVERSION from PREL_PAYMENT_TRANS 
                             where PREL_PAYMENT_ID = prel_payment_id_
@@ -293,19 +293,75 @@ $TAX_CURR_RATE=1
                         tax_p6_ := invoice_no_;
                         tax_p7_ := 1;
                         p8_     := 'FALSE';
-                        
+
                         IFSGFT.Payment_Tax_Item_API.Save_Pay_Tax_Items( tax_p0_ , tax_p1_ , tax_p2_ , tax_p3_ , tax_p4_ , tax_p5_ , tax_p6_ , tax_p7_ , p8_ );                    
                         COMMIT;
                     END;
                 END LOOP;
               transaction_sys.set_status_info('Saldos ajustados.','INFO');  
             END;
+        ELSIF val_reembolso_ <  val_adiantamento_ THEN
+            transaction_sys.set_status_info('Iniciando ajustes do saldodo adiantamento, adiantamento: '||val_adiantamento_||' Reembolso: '||val_reembolso_||'.','INFO');
+            BEGIN
+                FOR r in (select OBJID, OBJVERSION from PREL_PAYMENT_TRANS 
+                            where PREL_PAYMENT_ID = prel_payment_id_
+                              and LEDGER_ITEM_SERIES_ID = r_Adiantamento.LEDGER_ITEM_SERIES_ID 
+                              and LEDGER_ITEM_ID = r_Adiantamento.LEDGER_ITEM_ID
+                            FETCH FIRST 1 ROW ONLY)
+                LOOP
+                    BEGIN
+                        tax_p0_  := '!PAY_TAX_ITEMS';
+                        tax_p1_  := NULL;
+                        tax_p2_  := r_Adiantamento.COMPANY;
+                        tax_p3_  := r_Adiantamento.IDENTITY;
+                        tax_p4_  := 'Fornecedor';
+                        tax_p5_  := r_Adiantamento.LEDGER_ITEM_SERIES_ID;
+                        tax_p6_  := r_Adiantamento.LEDGER_ITEM_ID;
+                        tax_p7_  := 1;
+                        tax_p8_  := 1;
+                        tax_p9_  := val_reembolso_*-1;
+                        tax_p10_ := to_date(SYSDATE,'YYYY-MM-DD-HH24.MI.SS','NLS_CALENDAR=GREGORIAN');
+                        tax_p11_ := 1;
+                        tax_p12_ := 1;
+
+                        IFSGFT.Payment_Tax_Item_API.Create_Def_Pay_Tax_Items( tax_p0_ , tax_p1_ , tax_p2_ , tax_p3_ , tax_p4_ , tax_p5_ , tax_p6_ , tax_p7_ , tax_p8_ , tax_p9_ , tax_p10_ , tax_p11_ , tax_p12_ );
+                        COMMIT;
+                    END;
+                    BEGIN                
+                        p0_  := NULL;
+                        p1_ := r.OBJID;
+                        p2_ := r.OBJVERSION;
+                        p3_ := 'PAYMENT_AMOUNT'||chr(31)||val_reembolso_*-1||chr(30)||
+                            'CURR_AMOUNT'||chr(31)||val_reembolso_*-1||chr(30)||
+                            'CURR_REST_AMOUNT'||chr(31)||val_reembolso_*-1||chr(30); 
+                        p4_ := 'DO';       
+
+                        IFSGFT.PREL_PAYMENT_TRANS_API.MODIFY__( p0_ , p1_ , p2_ , p3_ , p4_ );
+                        COMMIT;
+                    END;
+                    BEGIN
+                        tax_p0_ := '!PAY_TAX_ITEMS';
+                        tax_p1_ := NULL;
+                        tax_p2_ := r_Adiantamento.COMPANY;
+                        tax_p3_ := r_Adiantamento.IDENTITY;
+                        tax_p4_ := 'Fornecedor';
+                        tax_p5_ := r_Adiantamento.LEDGER_ITEM_SERIES_ID;
+                        tax_p6_ := r_Adiantamento.LEDGER_ITEM_ID;
+                        tax_p7_ := 1;
+                        p8_     := 'FALSE';
+
+                        IFSGFT.Payment_Tax_Item_API.Save_Pay_Tax_Items( tax_p0_ , tax_p1_ , tax_p2_ , tax_p3_ , tax_p4_ , tax_p5_ , tax_p6_ , tax_p7_ , p8_ );                    
+                        COMMIT;
+                    END;
+                END LOOP;
+              transaction_sys.set_status_info('Saldos ajustados.','INFO');  
+            END;            
         ELSE
            transaction_sys.set_status_info('Saldo não precisa ser ajustado, adiantamento: '||val_adiantamento_||' Reembolso: '||val_reembolso_||'.','INFO'); 
         END IF;
     END;
         -- Fim do bloco Ajustes do valor da compensação.
-        
+
         -- Bloco aprovar Compensação.
     BEGIN
         FOR r IN (SELECT VOUCHER_TYPE,USER_GROUP,ACCOUNTING_YEAR,VOUCHER_GROUP FROM PAYMENT_UNION WHERE PREL_PAYMENT_ID = prel_payment_id_)
@@ -314,7 +370,7 @@ $TAX_CURR_RATE=1
         BEGIN
             p0_ := NULL;
             p1_ := company_;
-        
+
             IFSGFT.PREL_PAYMENT_TRANS_API.Create_Payment_Message(p0_ , p1_ , prel_payment_id_ );    
         END;
         BEGIN
@@ -337,7 +393,7 @@ $TAX_CURR_RATE=1
 
             IFSGFT.PREL_PAYMENT_TRANS_UTIL_API.Copy_Payment_Transactions( serie_id_aprov_ , payment_id_ , p2_ , p6_ , p4_ , prel_payment_id_ ,'OFFSET', p3_ );
 
-            
+
             voucher_type_ := NULL;
             acc_year_     := NULL;
             voucher_no_   := NULL;
@@ -349,7 +405,7 @@ $TAX_CURR_RATE=1
             p10_          := 1;
 
             IFSGFT.Payment_API.Commit_Manual_Payment(voucher_type_ , acc_year_ , voucher_no_ , serie_id_aprov_ , payment_id_ , p5_ , p6_ , curr_amount_ , p8_ , p9_ , p10_ ,NULL);
-    
+
             IFSGFT.Prel_Payment_Trans_Util_API.Delete_Prel_Pay_Trans( p5_ , prel_payment_id_ , 'OFFSET');
         END;
       END LOOP; 
