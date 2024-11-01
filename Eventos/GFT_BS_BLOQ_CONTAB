@@ -1,0 +1,24 @@
+DECLARE
+   PRAGMA AUTONOMOUS_TRANSACTION;
+    pre_account_   NUMBER := &NEW:PRE_ACCOUNTING_ID;
+    activity_seq_  NUMBER := '&NEW:ACTIVITY_SEQ';
+
+    CURSOR c_Ordem_Compra IS
+        SELECT REQUISITION_NO
+        FROM PURCHASE_ORDER_LINE_PART 
+        WHERE PRE_ACCOUNTING_ID = pre_account_
+        FETCH FIRST 1 ROW ONLY ;
+
+    v_Ordem_Compra c_Ordem_Compra%ROWTYPE;
+
+BEGIN
+    OPEN c_Ordem_Compra;
+    FETCH c_Ordem_Compra INTO v_Ordem_Compra;
+    
+    IF c_Ordem_Compra%FOUND THEN
+
+     RAISE_APPLICATION_ERROR(-20100, 'Não é possível alterar a Pré Contabilização pela Ordem de Compra.');
+     CLOSE c_Ordem_Compra;
+        END IF;
+    CLOSE c_Ordem_Compra;
+END;
