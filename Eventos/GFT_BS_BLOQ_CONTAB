@@ -1,13 +1,32 @@
 DECLARE
    PRAGMA AUTONOMOUS_TRANSACTION;
-    pre_account_   NUMBER := &NEW:PRE_ACCOUNTING_ID;
-    activity_seq_  NUMBER := '&NEW:ACTIVITY_SEQ';
-
+    pre_account_      NUMBER := &NEW:PRE_ACCOUNTING_ID;
+    activity_seq_new  NUMBER := &NEW:ACTIVITY_SEQ;
+    activity_seq_old  NUMBER := &OLD:ACTIVITY_SEQ;
+    account_new    varchar2(3200) := '&NEW:ACCOUNT_NO';
+    account_old    varchar2(3200) := '&OLD:ACCOUNT_NO';     
+    code_b_new     varchar2(3200) := '&NEW:CODENO_B';
+    code_b_old     varchar2(3200) := '&OLD:CODENO_B';
+    code_c_new     varchar2(3200) := '&NEW:CODENO_C';
+    code_c_old     varchar2(3200) := '&OLD:CODENO_C';
+    code_d_new     varchar2(3200) := '&NEW:CODENO_D';
+    code_d_old     varchar2(3200) := '&OLD:CODENO_D';  
+    code_f_new     varchar2(3200) := '&NEW:CODENO_F';
+    code_f_old     varchar2(3200) := '&OLD:CODENO_F';
+    code_g_new     varchar2(3200) := '&NEW:CODENO_G';
+    code_g_old     varchar2(3200) := '&OLD:CODENO_G'; 
+    code_h_new     varchar2(3200) := '&NEW:CODENO_H';
+    code_h_old     varchar2(3200) := '&OLD:CODENO_H';
+    code_i_new     varchar2(3200) := '&NEW:CODENO_I';
+    code_i_old     varchar2(3200) := '&OLD:CODENO_I';
+    
+    
     CURSOR c_Ordem_Compra IS
         SELECT REQUISITION_NO
         FROM PURCHASE_ORDER_LINE_PART 
         WHERE PRE_ACCOUNTING_ID = pre_account_
         FETCH FIRST 1 ROW ONLY ;
+
 
     v_Ordem_Compra c_Ordem_Compra%ROWTYPE;
 
@@ -16,9 +35,26 @@ BEGIN
     FETCH c_Ordem_Compra INTO v_Ordem_Compra;
     
     IF c_Ordem_Compra%FOUND THEN
-
-     RAISE_APPLICATION_ERROR(-20100, 'Não é possível alterar a Pré Contabilização pela Ordem de Compra.');
+        IF account_new <> account_old THEN
+            RAISE_APPLICATION_ERROR(-20100, 'Não é possível alterar a Pré Contabilização pela Ordem de Compra.');
+        ELSIF code_b_new <> code_b_old THEN
+            RAISE_APPLICATION_ERROR(-20100, 'Não é possível alterar a Pré Contabilização pela Ordem de Compra.');
+        ELSIF code_c_new <> code_c_old THEN
+            RAISE_APPLICATION_ERROR(-20100, 'Não é possível alterar a Pré Contabilização pela Ordem de Compra.');  
+        ELSIF code_d_new <> code_d_old THEN
+            RAISE_APPLICATION_ERROR(-20100, 'Não é possível alterar a Pré Contabilização pela Ordem de Compra.');   
+        ELSIF code_f_new <> code_f_old THEN
+            RAISE_APPLICATION_ERROR(-20100, 'Não é possível alterar a Pré Contabilização pela Ordem de Compra.'); 
+        ELSIF code_g_new <> code_g_old THEN
+            RAISE_APPLICATION_ERROR(-20100, 'Não é possível alterar a Pré Contabilização pela Ordem de Compra.');             
+        ELSIF code_h_new <> code_h_old THEN
+            RAISE_APPLICATION_ERROR(-20100, 'Não é possível alterar a Pré Contabilização pela Ordem de Compra.'); 
+        ELSIF code_i_new <> code_i_old THEN
+            RAISE_APPLICATION_ERROR(-20100, 'Não é possível alterar a Pré Contabilização pela Ordem de Compra.');
+        ELSIF activity_seq_new <> activity_seq_old THEN
+            RAISE_APPLICATION_ERROR(-20100, 'Não é possível alterar a Pré Contabilização pela Ordem de Compra.'); 
+        END IF;    
      CLOSE c_Ordem_Compra;
-        END IF;
-    CLOSE c_Ordem_Compra;
+   ELSE CLOSE c_Ordem_Compra;  
+   END IF;
 END;
