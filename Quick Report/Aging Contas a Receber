@@ -2,12 +2,12 @@ SELECT subtab.ID_CLIENTE AS "ID Cliente",
        subtab.DESC_CLIENTE AS "Nome Cliente",
        subtab.ID_EMPRESA AS "Empresa",
        --Pega apenas os valores positivos ou zero
-       LPAD(TO_CHAR(SUM(CASE WHEN subtab.A_1_30DD > 0 THEN subtab.A_1_30DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),20) AS "1 - 30dd",
-       LPAD(TO_CHAR(SUM(CASE WHEN subtab.B_31_60DD > 0 THEN subtab.B_31_60DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),20) AS "31 - 60dd",
-       LPAD(TO_CHAR(SUM(CASE WHEN subtab.C_61_90DD > 0 THEN subtab.C_61_90DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),20) AS "61 - 90dd",
-       LPAD(TO_CHAR(SUM(CASE WHEN subtab.D_91_180DD > 0 THEN subtab.D_91_180DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),20) AS "91 - 180dd",
-       LPAD(TO_CHAR(SUM(CASE WHEN subtab.E_181_365DD > 0 THEN subtab.E_181_365DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),20) AS "181 - 365dd",
-       LPAD(TO_CHAR(SUM(CASE WHEN subtab.F_365DD > 0 THEN subtab.F_365DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),20) AS "> 365dd",
+       LPAD(TO_CHAR(SUM(CASE WHEN subtab.A_1_30DD > 0 THEN subtab.A_1_30DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),25) AS "1 - 30dd",
+       LPAD(TO_CHAR(SUM(CASE WHEN subtab.B_31_60DD > 0 THEN subtab.B_31_60DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),25) AS "31 - 60dd",
+       LPAD(TO_CHAR(SUM(CASE WHEN subtab.C_61_90DD > 0 THEN subtab.C_61_90DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),25) AS "61 - 90dd",
+       LPAD(TO_CHAR(SUM(CASE WHEN subtab.D_91_180DD > 0 THEN subtab.D_91_180DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),25) AS "91 - 180dd",
+       LPAD(TO_CHAR(SUM(CASE WHEN subtab.E_181_365DD > 0 THEN subtab.E_181_365DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),25) AS "181 - 365dd",
+       LPAD(TO_CHAR(SUM(CASE WHEN subtab.F_365DD > 0 THEN subtab.F_365DD ELSE 0 END), 'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),25) AS "> 365dd",
        --Soma total apenas dos valores positivos
        LPAD(TO_CHAR(SUM(CASE WHEN subtab.A_1_30DD > 0 THEN subtab.A_1_30DD ELSE 0 END 
                         + CASE WHEN subtab.B_31_60DD > 0 THEN subtab.B_31_60DD ELSE 0 END
@@ -15,7 +15,7 @@ SELECT subtab.ID_CLIENTE AS "ID Cliente",
                         + CASE WHEN subtab.D_91_180DD > 0 THEN subtab.D_91_180DD ELSE 0 END
                         + CASE WHEN subtab.E_181_365DD > 0 THEN subtab.E_181_365DD ELSE 0 END
                         + CASE WHEN subtab.F_365DD > 0 THEN subtab.F_365DD ELSE 0 END), 
-                        'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),20) AS TOTAL,
+                        'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),25) AS TOTAL,
                         
        -- Adiantamento pegando apenas os valores negativos
        LPAD(TO_CHAR(SUM(CASE WHEN subtab.A_1_30DD < 0 THEN subtab.A_1_30DD ELSE 0 END 
@@ -24,7 +24,7 @@ SELECT subtab.ID_CLIENTE AS "ID Cliente",
                         + CASE WHEN subtab.D_91_180DD < 0 THEN subtab.D_91_180DD ELSE 0 END
                         + CASE WHEN subtab.E_181_365DD < 0 THEN subtab.E_181_365DD ELSE 0 END
                         + CASE WHEN subtab.F_365DD < 0 THEN subtab.F_365DD ELSE 0 END), 
-                        'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),20) AS "Adiantamento"
+                        'FM999G999G999G999D00', 'NLS_NUMERIC_CHARACTERS = '',.'''),25) AS "Adiantamento"
        
   FROM (SELECT a.customer_no      ID_CLIENTE,
                a.customer_name    DESC_CLIENTE,
