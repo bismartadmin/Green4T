@@ -1,0 +1,21 @@
+DECLARE
+   -- p0 -> __lsResult
+   p0_ VARCHAR2(32000) := '';
+
+   -- p1 -> __sObjid
+   p1_ VARCHAR2(32000) := 'AAAbzdAAGAABscQAAF';
+
+   -- p2 -> __lsObjversion
+   p2_ VARCHAR2(32000) := '20220114171855';
+
+   -- p3 -> __lsAttr
+   p3_ VARCHAR2(32000) := 'BUY_UNIT_MEAS'||chr(31)||'m'||chr(30)||;
+
+   -- p4 -> __sAction
+   p4_ VARCHAR2(32000) := 'DO';
+
+BEGIN
+    
+IFSGFT.PURCHASE_ORDER_LINE_PART_API.MODIFY__( p0_ , p1_ , p2_ , p3_ , p4_ );
+
+END;
