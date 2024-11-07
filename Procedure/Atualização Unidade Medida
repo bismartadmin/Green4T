@@ -1,0 +1,134 @@
+DECLARE
+   order_no_ VARCHAR2(3200) := '1265';
+   line_no_ VARCHAR2(3200) := 2;
+   release_no_ NUMBER := 1;
+   company_ VARCHAR2(3200) := 'G4TSOL';
+   authorize_id_ VARCHAR2(3200) := 'IFSGFT';
+   chg_order_no_ VARCHAR2(3200) := NULL;
+   sequence_no_ VARCHAR2(3200) := NULL;
+   buy_unit_meas_ VARCHAR2(3200) := NULL;
+   source_ VARCHAR2(3200) := 'POCO';
+   objid_ VARCHAR2(3200) := NULL;
+   objversion_ VARCHAR2(3200) := NULL;
+   p0_ VARCHAR2(32000) := NULL;
+   p1_ VARCHAR2(32000) := NULL;
+   p2_ VARCHAR2(32000) := NULL;
+   p3_ VARCHAR2(32000) := NULL;
+   p4_ VARCHAR2(32000) := NULL;
+   p5_ VARCHAR2(32000) := NULL;
+   p6_ VARCHAR2(32000) := NULL;
+   p7_ VARCHAR2(32000) := NULL;
+   p8_ VARCHAR2(32000) := NULL;
+ 
+BEGIN
+   -- Passo 1: Criar Ordem de Alteração
+   p0_ := chg_order_no_;
+   p1_ := order_no_;
+   p2_ := source_;
+   IFSGFT.Purch_Chg_Ord_API.Create_Change_Orders(p0_, p1_, p2_);
+COMMIT;
+ 
+   -- Passo 2: Alterar Unidade de Medida
+   SELECT A.OBJID, A.OBJVERSION
+   INTO objid_, objversion_
+   FROM IFSGFT.PURCH_CHG_ORD_LINE A
+   WHERE A.COMPANY = company_ AND A.ORDER_NO = order_no_ AND A.LINE_NO = line_no_ AND a.RELEASE_NO = release_no_
+   ORDER BY TO_NUMBER(CHG_ORDER_NO) DESC FETCH FIRST ROW ONLY;
+ 
+   SELECT B.CF$_BUY_UNIT_MEAS
+   INTO buy_unit_meas_
+   FROM IFSGFT.TESTE_REQ_UNIDADE_CLV B
+   WHERE B.CF$_ORDER_NO = order_no_ AND B.CF$_LINE_NO = line_no_ AND B.CF$_RELEASE_NO = release_no_ AND B.CF$_COMPANY = company_;
+ 
+   SELECT P.AUTHORIZE_ID
+   INTO authorize_id_
+   FROM IFSGFT.PURCHASE_ORDER_APPROVAL P
+   WHERE P.ORDER_NO = order_no_ AND P.COMPANY = company_ AND (P.chg_order_no = '1' OR P.chg_order_no = '*') FETCH FIRST ROW ONLY;
+ 
+   p0_ := '';
+   p1_ := objid_;
+   p2_ := objversion_;
+   p3_ := 'BUY_UNIT_MEAS'||chr(31)||buy_unit_meas_||chr(30)||
+          'DATE_TYPE'||chr(31)||''||chr(30)||
+          'TAX_AMOUNT'||chr(31)||'0'||chr(30)||
+          'TAX_AMOUNT_BASE'||chr(31)||'0'||chr(30)||
+          'MULTIPLE_TAX_LINES'||chr(31)||'FALSE'||chr(30);
+   p4_ := 'DO';
+ 
+   IFSGFT.PURCH_CHG_ORD_LINE_API.MODIFY__(p0_, p1_, p2_, p3_, p4_);
+COMMIT;
+ 
+   -- Passo 3: Liberar Ordem de Alteração
+   SELECT A.OBJID, A.OBJVERSION
+   INTO objid_, objversion_
+   FROM IFSGFT.PURCH_CHG_ORD A
+   WHERE A.COMPANY = company_ AND A.ORDER_NO = order_no_
+   ORDER BY TO_NUMBER(A.CHG_ORDER_NO) DESC FETCH FIRST ROW ONLY;
+ 
+   p0_ := NULL;
+   p1_ := objid_;
+   p2_ := objversion_;
+   p3_ := NULL;
+   p4_ := 'DO';
+ 
+   IFSGFT.PURCH_CHG_ORD_API.RELEASE__(p0_, p1_, p2_, p3_, p4_);
+COMMIT;
+ 
+   -- Passo 4: Autorizar 1
+   p0_ := order_no_;
+   p1_ := 20;
+   p2_ := 4;
+   p3_ := company_;
+   p4_ := authorize_id_;
+   p5_ := '';
+   p6_ := '';
+   p7_ := '';
+   p8_ := '';
+ 
+SELECT A.CHG_ORDER_NO
+INTO p1_
+FROM PURCH_CHG_ORD A
+WHERE A.ORDER_NO = '1265'
+ORDER BY TO_NUMBER(A.CHG_ORDER_NO) DESC
+FETCH FIRST ROW ONLY;
+ 
+select POA.SEQUENCE_NO
+INTO p2_
+from PURCHASE_ORDER_APPROVAL POA
+where POA.ORDER_NO = '1265'
+ORDER BY SEQUENCE_NO DESC
+FETCH FIRST ROW ONLY;
+ 
+  DBMS_OUTPUT.PUT_LINE('p0_ (ORDER_NO): ' || p0_);
+   DBMS_OUTPUT.PUT_LINE('p1_ (CHG_ORDER_NO): ' || p1_);
+   DBMS_OUTPUT.PUT_LINE('p2_ (SEQUENCE_NO): ' || p2_);
+   DBMS_OUTPUT.PUT_LINE('p3_ (COMPANY): ' || p3_);
+   DBMS_OUTPUT.PUT_LINE('p4_ (AUTHORIZE_ID): ' || p4_);
+   DBMS_OUTPUT.PUT_LINE('p5_: ' || p5_);
+   DBMS_OUTPUT.PUT_LINE('p6_: ' || p6_);
+   DBMS_OUTPUT.PUT_LINE('p7_: ' || p7_);
+   DBMS_OUTPUT.PUT_LINE('p8_: ' || p8_);
+ 
+   IFSGFT.PURCHASE_ORDER_APPROVAL_API.Supersede_Authorization(p0_, p1_, p2_, p3_, p4_, p5_, p6_, p7_, p8_);
+ 
+COMMIT;
+ 
+   -- Passo 5: Atualizar Ordem
+   SELECT A.OBJID, A.OBJVERSION
+   INTO objid_, objversion_
+   FROM IFSGFT.PURCH_CHG_ORD A
+   WHERE A.COMPANY = company_ AND A.ORDER_NO = order_no_
+   ORDER BY TO_NUMBER(A.CHG_ORDER_NO) DESC FETCH FIRST ROW ONLY;
+ 
+ 
+   p0_ := NULL;
+   p1_ := objid_;
+   p2_ := objversion_;
+   p3_ := NULL;
+   p4_ := 'DO';
+ 
+   IFSGFT.PURCH_CHG_ORD_API.UPDATE_PURCHASE_ORDER__(p0_, p1_, p2_, p3_, p4_);
+COMMIT;
+END;
+
+tem menu de contexto
