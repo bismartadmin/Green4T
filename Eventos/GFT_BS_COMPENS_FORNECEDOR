@@ -1,0 +1,22 @@
+DECLARE
+currency_ varchar2(3200):= '&NEW:CURRENCY';
+identity_  varchar2(3200):= '&NEW:IDENTITY';
+company_ varchar2(3200):= '&NEW:COMPANY';
+invoice_id_ NUMBER:= &NEW:INVOICE_ID;
+invoice_no_ varchar2(3200):= '&NEW:INVOICE_NO';
+series_id_  varchar2(3200):= '&NEW:SERIES_ID';
+amount_ NUMBER:= &NEW:INV_ACTUAL_NET_CURR_AMT;
+
+attr_ varchar2(3200) := NULL;
+
+BEGIN
+    client_sys.Add_To_Attr('currency',currency_, attr_);    
+    client_sys.Add_To_Attr('identity',identity_, attr_);
+    client_sys.Add_To_Attr('company',company_, attr_);
+    client_sys.Add_To_Attr('invoice_id',invoice_id_, attr_);
+    client_sys.Add_To_Attr('invoice_no',invoice_no_, attr_);
+    client_sys.Add_To_Attr('series_id',series_id_, attr_);
+    client_sys.Add_To_Attr('amount',amount_, attr_);
+  
+    transaction_SYS.Deferred_Call('COMPENS_FORNECEDOR', attr_,'Iniciando Compensacao.');
+END;
