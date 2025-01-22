@@ -1,0 +1,39 @@
+DECLARE
+order_no_ VARCHAR2(3200) := '&NEW:CF$_ORDER_NO';
+line_no_ VARCHAR2(3200) := '&NEW:CF$_LINE_NO';
+release_no_ VARCHAR2(3200) := '&NEW:CF$_RELEASE_NO';
+status_ VARCHAR2(3200) := NULL;
+count_ NUMBER := 0;
+
+BEGIN
+SELECT A.OBJSTATE INTO status_ FROM PURCHASE_ORDER A
+ WHERE ORDER_NO = order_no_;
+  
+  IF status_ <> 'Closed' THEN
+       BEGIN
+          SELECT 1 INTO count_ FROM PURCHASE_ORDER_LINE_PART A
+             WHERE ORDER_NO = order_no_
+               AND LINE_NO = line_no_;
+          EXCEPTION
+             WHEN NO_DATA_FOUND  THEN
+                  RAISE_APPLICATION_ERROR(-20100,'Não existe a linha: '||line_no_||' informada na Ordem de Compra: '||order_no_||'.');  
+       END;  
+    
+       BEGIN
+          SELECT 1 INTO count_ FROM PURCHASE_ORDER_LINE_PART A
+            WHERE A.ORDER_NO = order_no_
+              AND A.LINE_NO = line_no_
+              AND A.RELEASE_NO = release_no_;
+          EXCEPTION
+            WHEN NO_DATA_FOUND  THEN
+                 RAISE_APPLICATION_ERROR(-20100,'Não existe a liberação: '||release_no_||' informada na Ordem de Compra: '||order_no_||'.');  
+       END;     
+    
+  ELSE  
+    RAISE_APPLICATION_ERROR(-20100,'Não é possivel alterar em uma Ordem de Compra Fechada.');
+  END IF;
+    
+  EXCEPTION
+    WHEN NO_DATA_FOUND  THEN
+      RAISE_APPLICATION_ERROR(-20100,'Não existe a Ordem de Compra informada.');
+END; 
