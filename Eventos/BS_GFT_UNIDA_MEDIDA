@@ -2,12 +2,24 @@ DECLARE
 order_no_ VARCHAR2(3200) := '&NEW:CF$_ORDER_NO';
 line_no_ VARCHAR2(3200) := '&NEW:CF$_LINE_NO';
 release_no_ VARCHAR2(3200) := '&NEW:CF$_RELEASE_NO';
+company_db_ VARCHAR2(3200) := '&NEW:CF$_COMPANY';
+company_ VARCHAR2(3200) := NULL;
 status_ VARCHAR2(3200) := NULL;
 count_ NUMBER := 0;
 
 BEGIN
+  BEGIN
+       SELECT V.COMPANY INTO company_ FROM COMPANY V
+         WHERE V.OBJKEY = company_db_;
+     EXCEPTION
+         WHEN NO_DATA_FOUND  THEN
+              RAISE_APPLICATION_ERROR(-20100,'Empresa não localizada');        
+
+  END;  
+
 SELECT A.OBJSTATE INTO status_ FROM PURCHASE_ORDER A
- WHERE ORDER_NO = order_no_
+ WHERE A.ORDER_NO = order_no_
+  AND A.COMPANY = company_
  FETCH FIRST 1 ROWS ONLY;
   
   IF status_ <> 'Closed' THEN
@@ -38,5 +50,5 @@ SELECT A.OBJSTATE INTO status_ FROM PURCHASE_ORDER A
     
   EXCEPTION
     WHEN NO_DATA_FOUND  THEN
-      RAISE_APPLICATION_ERROR(-20100,'Não existe a Ordem de Compra informada.');
+      RAISE_APPLICATION_ERROR(-20100,'Não existe a Ordem de Compra: '||order_no_||' na empresa: '||company_);
 END; 
