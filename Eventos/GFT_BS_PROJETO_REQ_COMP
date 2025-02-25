@@ -1,0 +1,35 @@
+DECLARE 
+ requisition_no_ VARCHAR2(50) := '&NEW:REQUISITION_NO';
+ project_id_new     VARCHAR2(100) := '&NEW:PROJECT_ID';
+ project_id_old     VARCHAR2(100) := NULL;
+ user_              VARCHAR2(100) := '#USER_ID#';
+ user_autori_       VARCHAR2(100) := NULL;
+ result_            VARCHAR2(100) := NULL;
+
+PRAGMA AUTONOMOUS_TRANSACTION;
+  
+BEGIN
+   SELECT CFV.CF$_MULTI_PROJETOS_DB INTO user_autori_ FROM IFSGFT.PURCHASE_BUYER_CFV CFV
+    WHERE CFV.BUYER_CODE = user_;
+   
+    IF user_autori_ IS NULL OR user_autori_ = 'NAO' THEN
+       BEGIN
+           SELECT DISTINCT A.PROJECT_ID INTO project_id_old FROM IFSGFT.PURCHASE_REQ_LINE_PART A
+             WHERE A.PROJECT_ID  IS NOT NULL AND A.REQUISITION_NO = requisition_no_;
+  
+           IF project_id_new <> project_id_old THEN 
+              RAISE_APPLICATION_ERROR(-20100,'Usuário não autorizado a criar Requisição de Compra com Projetos diferentes.');
+           END IF;
+  
+        EXCEPTION
+          WHEN NO_DATA_FOUND THEN 
+            result_ := NULL;
+          WHEN TOO_MANY_ROWS THEN
+              RAISE_APPLICATION_ERROR(-20100,'Falha no evento GFT_BS_PROJETO_REQ_COMP, retornado varias linhas no select.');
+        END;
+    END IF;  
+ EXCEPTION
+   WHEN NO_DATA_FOUND THEN         
+     result_ := NULL;    
+   
+END;
