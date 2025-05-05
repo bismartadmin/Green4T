@@ -1,0 +1,127 @@
+CREATE OR REPLACE VIEW SPL_ACC_PAY_AGING_LIST AS
+SELECT c.company empresa,
+       c.identity ID,
+       c.identity_name nome,
+       c.ledger_item_series_id serie,
+       c.ledger_item_id titulo,
+       c.installment_id parcela,
+       (SELECT p.due_date
+        FROM   payment_plan p
+        WHERE  p.invoice_id = c.invoice_id
+        AND    p.company = c.company
+        AND    p.installment_id = c.installment_id) AS vencto_original,
+       (select t.payment_date from inc_invoice_util_pay_plan_pub t where t.company = c.company and t.invoice_id = c.invoice_id and t.installment_id = c.installment_id)vencto,
+       c.ledger_date data_lancto,
+       invoice_API.Get_Invoice_Date(c.company, c.invoice_id) AS data_titulo,
+       c.voucher_no lancto,
+       c.voucher_type tipo_lancto,
+       c.currency moeda,
+       c.inv_amount * (v.amount / total) AS valor_parcela,
+       c.open_amount * (v.amount / total) AS valor_aberto,
+       c.inv_dom_amount * (v.amount / total) AS valor_contabil_parcela,
+       c.open_dom_amount * (v.amount / total) AS valor_contabil_aberto,
+       NVL(SPL_CASH_FLOW_UTIL_API.calc_withheld_amount(c.company, c.identity, c.party_type, c.ledger_item_series_id, c.ledger_item_id, c.ledger_item_version,
+                                                   c.installment_id, c.open_dom_amount, c.currency, TRUNC(SYSDATE)), 0) total_valor_impostos,
+       (c.open_dom_amount * (v.amount / total)) - NVL(SPL_CASH_FLOW_UTIL_API.calc_withheld_amount(c.company, c.identity, c.party_type, c.ledger_item_series_id, c.ledger_item_id, c.ledger_item_version,
+                                                   c.installment_id, c.open_dom_amount, c.currency, TRUNC(SYSDATE)), 0) valor_liquido_contabil_aberto,
+       NULL data_pagto,
+       c.ncf_reference referencia,
+       c.invoice_state status_titulo,
+       c.po_ref_number ref_ordem,
+       v.code_a conta_contabil,
+       account_API.Get_Description(v.company, v.code_a) AS desc_conta,
+       v.code_b c_custo,
+       code_b_API.Get_Description(v.company, v.code_b) AS decricao_c_custo,
+       v.code_c a_fixo,
+       code_c_API.Get_Description(v.company, v.code_c) AS descricao_a_fixo,
+       v.code_d linha_servico,
+       code_d_API.Get_Description(v.company, v.code_d) AS descricao_linha_servico,
+       v.code_e projeto,
+       code_e_API.Get_Description(v.company, v.code_e) AS descricao_projeto,
+       v.code_f,
+       code_f_API.Get_Description(v.company, v.code_f) AS code_f_description,
+       v.code_g,
+       code_g_API.Get_Description(v.company, v.code_g) AS code_g_description,
+       v.code_h,
+       code_h_API.Get_Description(v.company, v.code_h) AS code_h_description,
+       v.code_i,
+       code_i_API.Get_Description(v.company, v.code_i) AS code_i_description,
+       v.code_j,
+       code_j_API.Get_Description(v.company, v.code_j) AS code_j_description,
+       c.inv_type_desc tipo_titulo,
+       c.installment_status status_parcela,
+       c.code_a as contrapartida,
+       account_API.Get_Description(v.company, C.code_a) AS contrapartida_desc,
+       identity_invoice_info_API.Get_Group_Id(c.company, c.identity, c.party_type) as grp_contabil,
+       invoice_API.Get_Invoice_Date(c.company, c.invoice_id)  as data_receb,
+       CASH_ACCOUNT_API.Get_Institute_Id(c.company, SPL_CASH_FLOW_UTIL_API.Get_Short_Name_Remittance(c.company, c.identity, c.party_type, c.ledger_item_series_id, c.ledger_item_id))  as banco,
+       SPL_CASH_FLOW_UTIL_API.Get_Short_Name_Remittance(c.company, c.identity, c.party_type, c.ledger_item_series_id, c.ledger_item_id) as conta,
+       0 as valor_pago,
+       NVL(SPL_CASH_FLOW_UTIL_API.Get_Reg_Date(c.company, c.identity, c.party_type, c.ledger_item_series_id, c.ledger_item_id), v.voucher_date)  date_reg,
+       'PAGAMENTO PREVISTO' origem,
+       (c.inv_amount * (v.amount / total)) * -1 AS orcado
+FROM   supp_inv_interest_fine_qry c
+INNER  JOIN inc_inv_util_vou_qry v ON c.company = v.company
+                               AND    c.invoice_id = v.invoice_id
+                               AND    v.posting_type IN ('IP18', 'M93', 'MANUAL', 'M18', 'M65','EXTERNAL')
+INNER  JOIN spl_acc_pay_aging_list_aux a ON a.company = c.company
+                               AND a.invoice_id = c.invoice_id
+WHERE  c.fully_paid = 'FALSE'
+AND    c.is_cancelled = 'FALSE'
+WITH   READ ONLY;
+comment on table SPL_ACC_PAY_AGING_LIST is 'LU=SplCashFlowUtil^PROMPT=Spl Acc Pay Aging List^MODULE=PAYLED^';
+comment on column SPL_ACC_PAY_AGING_LIST.EMPRESA is 'PROMPT=Empresa^';
+comment on column SPL_ACC_PAY_AGING_LIST.ID is 'PROMPT=Id^';
+comment on column SPL_ACC_PAY_AGING_LIST.NOME is 'PROMPT=Nome^';
+comment on column SPL_ACC_PAY_AGING_LIST.SERIE is 'PROMPT=Serie^';
+comment on column SPL_ACC_PAY_AGING_LIST.TITULO is 'PROMPT=Titulo^';
+comment on column SPL_ACC_PAY_AGING_LIST.PARCELA is 'PROMPT=Parcela^';
+comment on column SPL_ACC_PAY_AGING_LIST.VENCTO_ORIGINAL is 'PROMPT=Vencto Original^';
+comment on column SPL_ACC_PAY_AGING_LIST.VENCTO is 'PROMPT=Vencto^';
+comment on column SPL_ACC_PAY_AGING_LIST.DATA_LANCTO is 'PROMPT=Data Lancto^';
+comment on column SPL_ACC_PAY_AGING_LIST.DATA_TITULO is 'PROMPT=Data Titulo^';
+comment on column SPL_ACC_PAY_AGING_LIST.LANCTO is 'PROMPT=Lancto^';
+comment on column SPL_ACC_PAY_AGING_LIST.TIPO_LANCTO is 'PROMPT=Tipo Lancto^';
+comment on column SPL_ACC_PAY_AGING_LIST.MOEDA is 'PROMPT=Moeda^';
+comment on column SPL_ACC_PAY_AGING_LIST.VALOR_PARCELA is 'PROMPT=Valor Parcela^';
+comment on column SPL_ACC_PAY_AGING_LIST.VALOR_ABERTO is 'PROMPT=Valor Aberto^';
+comment on column SPL_ACC_PAY_AGING_LIST.VALOR_CONTABIL_PARCELA is 'PROMPT=Valor Contabil Parcela^';
+comment on column SPL_ACC_PAY_AGING_LIST.VALOR_CONTABIL_ABERTO is 'PROMPT=Valor Contabil Aberto^';
+comment on column SPL_ACC_PAY_AGING_LIST.TOTAL_VALOR_IMPOSTOS is 'PROMPT=Total Valor Impostos^';
+comment on column SPL_ACC_PAY_AGING_LIST.VALOR_LIQUIDO_CONTABIL_ABERTO is 'PROMPT=Valor Liquido Contabil Aberto^';
+comment on column SPL_ACC_PAY_AGING_LIST.DATA_PAGTO is 'PROMPT=Data Pagto^';
+comment on column SPL_ACC_PAY_AGING_LIST.REFERENCIA is 'PROMPT=Referencia^';
+comment on column SPL_ACC_PAY_AGING_LIST.STATUS_TITULO is 'PROMPT=Status Titulo^';
+comment on column SPL_ACC_PAY_AGING_LIST.REF_ORDEM is 'PROMPT=Ref Ordem^';
+comment on column SPL_ACC_PAY_AGING_LIST.CONTA_CONTABIL is 'PROMPT=Conta Contabil^';
+comment on column SPL_ACC_PAY_AGING_LIST.DESC_CONTA is 'PROMPT=Desc Conta^';
+comment on column SPL_ACC_PAY_AGING_LIST.C_CUSTO is 'PROMPT=C Custo^';
+comment on column SPL_ACC_PAY_AGING_LIST.DECRICAO_C_CUSTO is 'PROMPT=Decricao C Custo^';
+comment on column SPL_ACC_PAY_AGING_LIST.A_FIXO is 'PROMPT=A Fixo^';
+comment on column SPL_ACC_PAY_AGING_LIST.DESCRICAO_A_FIXO is 'PROMPT=Descricao A Fixo^';
+comment on column SPL_ACC_PAY_AGING_LIST.LINHA_SERVICO is 'PROMPT=Linha Servico^';
+comment on column SPL_ACC_PAY_AGING_LIST.DESCRICAO_LINHA_SERVICO is 'PROMPT=Descricao Linha Servico^';
+comment on column SPL_ACC_PAY_AGING_LIST.PROJETO is 'PROMPT=Projeto^';
+comment on column SPL_ACC_PAY_AGING_LIST.DESCRICAO_PROJETO is 'PROMPT=Descricao Projeto^';
+comment on column SPL_ACC_PAY_AGING_LIST.CODE_F is 'PROMPT=Code F^';
+comment on column SPL_ACC_PAY_AGING_LIST.CODE_F_DESCRIPTION is 'PROMPT=Code F Description^';
+comment on column SPL_ACC_PAY_AGING_LIST.CODE_G is 'PROMPT=Code G^';
+comment on column SPL_ACC_PAY_AGING_LIST.CODE_G_DESCRIPTION is 'PROMPT=Code G Description^';
+comment on column SPL_ACC_PAY_AGING_LIST.CODE_H is 'PROMPT=Code H^';
+comment on column SPL_ACC_PAY_AGING_LIST.CODE_H_DESCRIPTION is 'PROMPT=Code H Description^';
+comment on column SPL_ACC_PAY_AGING_LIST.CODE_I is 'PROMPT=Code I^';
+comment on column SPL_ACC_PAY_AGING_LIST.CODE_I_DESCRIPTION is 'PROMPT=Code I Description^';
+comment on column SPL_ACC_PAY_AGING_LIST.CODE_J is 'PROMPT=Code J^';
+comment on column SPL_ACC_PAY_AGING_LIST.CODE_J_DESCRIPTION is 'PROMPT=Code J Description^';
+comment on column SPL_ACC_PAY_AGING_LIST.TIPO_TITULO is 'PROMPT=Tipo Titulo^';
+comment on column SPL_ACC_PAY_AGING_LIST.STATUS_PARCELA is 'PROMPT=Status Parcela^';
+comment on column SPL_ACC_PAY_AGING_LIST.CONTRAPARTIDA is 'PROMPT=Contrapartida^';
+comment on column SPL_ACC_PAY_AGING_LIST.CONTRAPARTIDA_DESC is 'PROMPT=Contrapartida Desc^';
+comment on column SPL_ACC_PAY_AGING_LIST.GRP_CONTABIL is 'PROMPT=Grp Contabil^';
+comment on column SPL_ACC_PAY_AGING_LIST.DATA_RECEB is 'PROMPT=Data Receb^';
+comment on column SPL_ACC_PAY_AGING_LIST.BANCO is 'PROMPT=Banco^';
+comment on column SPL_ACC_PAY_AGING_LIST.CONTA is 'PROMPT=Conta^';
+comment on column SPL_ACC_PAY_AGING_LIST.VALOR_PAGO is 'PROMPT=Valor Pago^';
+comment on column SPL_ACC_PAY_AGING_LIST.DATE_REG is 'PROMPT=Date Reg^';
+comment on column SPL_ACC_PAY_AGING_LIST.ORIGEM is 'PROMPT=Origem^';
+comment on column SPL_ACC_PAY_AGING_LIST.ORCADO is 'PROMPT=Orcado^';
